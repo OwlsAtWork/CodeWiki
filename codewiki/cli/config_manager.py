@@ -279,6 +279,9 @@ class ConfigManager:
         Subscription-mode providers (claude-code, codex) do not require an
         API key — they authenticate via the underlying CLI's OAuth.
 
+        Bedrock provider uses AWS credentials from the environment, so it
+        does not require an API key either.
+
         Returns:
             True if configured, False otherwise
         """
@@ -286,7 +289,9 @@ class ConfigManager:
             return False
 
         from codewiki.src.be.backend import is_caw_provider
-        if not is_caw_provider(self._config.provider):
+        provider = self._config.provider
+        # caw providers and bedrock don't need an API key
+        if not is_caw_provider(provider) and provider != "bedrock":
             # Check if API key is set
             if self.get_api_key() is None:
                 return False

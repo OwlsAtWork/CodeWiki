@@ -57,6 +57,11 @@ def _get_litellm_model_name(model_name: str, provider: str) -> str:
 
     For Bedrock, prefixes the model name with 'bedrock/' if not already prefixed.
     For Anthropic, prefixes with 'anthropic/' if not already prefixed.
+
+    Supported Bedrock Claude models (current as of 2026):
+      - us.anthropic.claude-opus-4-5-20251101-v1:0   (Claude 4.5 Opus)
+      - us.anthropic.claude-sonnet-4-6-20260101-v1:0 (Claude 4.6 Sonnet)
+      - us.anthropic.claude-haiku-4-5-20251001-v1:0  (Claude 4.5 Haiku)
     """
     if provider == "bedrock":
         if not model_name.startswith("bedrock/"):

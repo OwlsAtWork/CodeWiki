@@ -78,12 +78,26 @@ codewiki config set \
   --main-model gpt-4o \
   --cluster-model gpt-4o
 
-# AWS Bedrock
+# AWS Bedrock (Claude 4.5 Opus - most capable)
 codewiki config set \
   --provider bedrock \
   --aws-region us-east-1 \
-  --main-model anthropic.claude-sonnet-4-v2:0 \
-  --cluster-model anthropic.claude-sonnet-4-v2:0
+  --main-model us.anthropic.claude-opus-4-5-20251101-v1:0 \
+  --cluster-model us.anthropic.claude-opus-4-5-20251101-v1:0
+
+# AWS Bedrock (Claude 4.6 Sonnet)
+codewiki config set \
+  --provider bedrock \
+  --aws-region us-east-1 \
+  --main-model us.anthropic.claude-sonnet-4-6-20260101-v1:0 \
+  --cluster-model us.anthropic.claude-sonnet-4-6-20260101-v1:0
+
+# AWS Bedrock (Claude 4.5 Haiku - fastest)
+codewiki config set \
+  --provider bedrock \
+  --aws-region us-east-1 \
+  --main-model us.anthropic.claude-haiku-4-5-20251001-v1:0 \
+  --cluster-model us.anthropic.claude-haiku-4-5-20251001-v1:0
 
 # Subscription mode (Claude Code) — uses your existing Claude OAuth login.
 # Install the Claude Code CLI and run `claude login` first.

@@ -145,12 +145,19 @@ class Configuration:
         Subscription-mode providers (claude-code, codex) authenticate via the
         underlying CLI's OAuth and do not require a base URL or fallback model.
 
+        Bedrock provider uses AWS credentials from the environment, so it
+        does not require a base URL — only model names.
+
         Raises:
             ConfigurationError: If validation fails
         """
         from codewiki.src.be.backend import is_caw_provider
         if is_caw_provider(self.provider):
             validate_model_name(self.main_model)
+            return
+        if self.provider == "bedrock":
+            validate_model_name(self.main_model)
+            validate_model_name(self.cluster_model)
             return
         validate_url(self.base_url)
         validate_model_name(self.main_model)
@@ -216,10 +223,16 @@ class Configuration:
         Subscription-mode providers (claude-code, codex) only require
         ``main_model``; ``base_url``, ``cluster_model`` and ``fallback_model``
         are unused.
+
+        Bedrock provider uses AWS credentials from the environment, so it
+        does not require ``base_url`` or API key — only ``main_model`` and
+        ``cluster_model``.
         """
         from codewiki.src.be.backend import is_caw_provider
         if is_caw_provider(self.provider):
             return bool(self.main_model)
+        if self.provider == "bedrock":
+            return bool(self.main_model and self.cluster_model)
         return bool(
             self.base_url and
             self.main_model and

@@ -210,23 +210,36 @@ def detect_supported_languages(directory: Path) -> List[Tuple[str, int]]:
 def is_top_tier_model(model: str) -> bool:
     """
     Check if a model is considered top-tier for clustering.
-    
+
     Args:
-        model: Model name
-        
+        model: Model name (supports both API and Bedrock model IDs)
+
     Returns:
         True if top-tier, False otherwise
     """
-    top_tier_models = [
+    top_tier_patterns = [
+        # Claude models (API style)
         'claude-opus',
         'claude-sonnet',
+        'claude-4',
+        'claude-haiku-4',
+        # Claude models (Bedrock style: us.anthropic.claude-*)
+        'anthropic.claude-opus',
+        'anthropic.claude-sonnet',
+        'anthropic.claude-haiku',
+        # OpenAI models
         'gpt-4',
         'gpt-5',
-        'gemini-2.5',
+        'o1',
+        'o3',
+        'o4',
+        # Google models
+        'gemini-2',
+        'gemini-1.5-pro',
     ]
-    
+
     model_lower = model.lower()
-    return any(tier in model_lower for tier in top_tier_models)
+    return any(pattern in model_lower for pattern in top_tier_patterns)
 
 
 def mask_api_key(api_key: str, visible_chars: int = 4) -> str:
