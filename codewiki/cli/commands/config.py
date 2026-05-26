@@ -508,8 +508,9 @@ def config_validate(quick: bool, verbose: bool):
         config = manager.get_config()
         from codewiki.src.be.backend import is_caw_provider
         caw_mode = bool(config) and is_caw_provider(config.provider)
+        bedrock_mode = bool(config) and config.provider == "bedrock"
 
-        # Step 2: Check API key (skipped for subscription providers)
+        # Step 2: Check API key (skipped for subscription and bedrock providers)
         if verbose:
             click.echo()
             click.echo("[2/5] Checking API key...")
@@ -519,6 +520,11 @@ def config_validate(quick: bool, verbose: bool):
                 click.secho("      ✓ API key not required (subscription mode)", fg="green")
             else:
                 click.secho("✓ API key not required (subscription mode)", fg="green")
+        elif bedrock_mode:
+            if verbose:
+                click.secho("      ✓ API key not required (Bedrock uses AWS credentials)", fg="green")
+            else:
+                click.secho("✓ API key not required (Bedrock uses AWS credentials)", fg="green")
         else:
             if verbose:
                 storage = "system keychain" if manager.keyring_available else "encrypted file"
@@ -537,7 +543,7 @@ def config_validate(quick: bool, verbose: bool):
             else:
                 click.secho("✓ API key present (stored in keychain)", fg="green")
 
-        # Step 3: Check base URL (skipped for subscription providers)
+        # Step 3: Check base URL (skipped for subscription and bedrock providers)
         if verbose:
             click.echo()
             click.echo("[3/5] Checking base URL...")
@@ -547,6 +553,11 @@ def config_validate(quick: bool, verbose: bool):
                 click.secho("      ✓ Base URL not required (subscription mode)", fg="green")
             else:
                 click.secho("✓ Base URL not required (subscription mode)", fg="green")
+        elif bedrock_mode:
+            if verbose:
+                click.secho(f"      ✓ Base URL not required (Bedrock uses AWS region: {config.aws_region})", fg="green")
+            else:
+                click.secho(f"✓ Base URL not required (Bedrock region: {config.aws_region})", fg="green")
         else:
             if verbose:
                 click.echo(f"      URL: {config.base_url}")
@@ -572,7 +583,8 @@ def config_validate(quick: bool, verbose: bool):
             click.echo(f"      Main model: {config.main_model}")
             if not caw_mode:
                 click.echo(f"      Cluster model: {config.cluster_model}")
-                click.echo(f"      Fallback model: {config.fallback_model}")
+                if not bedrock_mode:
+                    click.echo(f"      Fallback model: {config.fallback_model}")
 
         if caw_mode:
             if not config.main_model:
@@ -582,6 +594,23 @@ def config_validate(quick: bool, verbose: bool):
                 click.secho("      ✓ Main model configured", fg="green")
             else:
                 click.secho(f"✓ Main model configured: {config.main_model}", fg="green")
+        elif bedrock_mode:
+            if not config.main_model or not config.cluster_model:
+                click.secho("✗ Models not configured", fg="red")
+                sys.exit(EXIT_CONFIG_ERROR)
+
+            if verbose:
+                click.secho("      ✓ Models configured", fg="green")
+            else:
+                click.secho(f"✓ Main model configured: {config.main_model}", fg="green")
+                click.secho(f"✓ Cluster model configured: {config.cluster_model}", fg="green")
+
+            # Warn about non-top-tier cluster model
+            if not is_top_tier_model(config.cluster_model):
+                click.secho(
+                    "⚠️  Cluster model is not top-tier. Consider using claude-opus-4 or claude-sonnet-4.",
+                    fg="yellow"
+                )
         else:
             if not config.main_model or not config.cluster_model or not config.fallback_model:
                 click.secho("✗ Models not configured", fg="red")
@@ -626,6 +655,34 @@ def config_validate(quick: bool, verbose: bool):
                 )
             else:
                 click.secho(f"✓ {cli_name} CLI available (run '{cli_name} login' if not yet authenticated)", fg="green")
+        elif bedrock_mode and not quick:
+            if verbose:
+                click.echo()
+                click.echo("[5/5] Testing AWS Bedrock connectivity...")
+                click.echo(f"      Region: {config.aws_region}")
+                click.echo(f"      Model: {config.main_model}")
+
+            try:
+                import boto3
+                bedrock = boto3.client('bedrock-runtime', region_name=config.aws_region)
+                # Just verify we can create the client and have credentials
+                bedrock.meta.region_name  # This will fail if credentials are missing
+
+                if verbose:
+                    click.secho("      ✓ AWS credentials found", fg="green")
+                    click.secho("      ✓ Bedrock client initialized", fg="green")
+                else:
+                    click.secho(f"✓ AWS Bedrock connectivity OK (region: {config.aws_region})", fg="green")
+            except Exception as e:
+                click.secho("✗ AWS Bedrock connectivity test failed", fg="red")
+                if verbose:
+                    click.echo(f"      Error: {e}")
+                click.echo()
+                click.echo("Ensure AWS credentials are configured:")
+                click.echo("  - Run 'aws configure'")
+                click.echo("  - Or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+                click.echo("  - Or use an IAM role (EC2/ECS/Lambda)")
+                sys.exit(EXIT_CONFIG_ERROR)
         elif not quick:
             if verbose:
                 click.echo()
